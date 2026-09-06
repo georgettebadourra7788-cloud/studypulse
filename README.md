@@ -10,7 +10,7 @@ for the screen → component mapping.
 ## Tech stack
 
 - **Frontend**: React + Vite, Tailwind CSS v4
-- **Backend/Auth/DB**: Firebase (Auth, Firestore, Storage) — Spark (free) plan
+- **Backend/Auth/DB**: Firebase (Auth, Firestore) — Spark (free) plan
 - **CSV parsing**: Papaparse (client-side)
 - **Charts**: Recharts
 - **PDF export**: jsPDF + html2canvas
@@ -29,7 +29,7 @@ src/
   lib/            firebase.js, csvParser.js, statsEngine.js, planLimits.js
   pages/          Login.jsx, Dashboard.jsx, NewStudyPage.jsx, Study.jsx, Account.jsx
   App.jsx, main.jsx
-firebase.json, firestore.rules, firestore.indexes.json, storage.rules
+firebase.json, firestore.rules, firestore.indexes.json
 .env.example      (copy to .env.local and fill in your Firebase config)
 ```
 
@@ -43,10 +43,14 @@ studies/{studyId}
   ownerId, name, conditions: [{ label, color }], uploadCount, status, createdAt
 
 studies/{studyId}/uploads/{uploadId}
-  fileName, storagePath, participantLabel, columnMapping,
+  fileName, participantLabel, columnMapping,
   parsedStats: { hr, gsr, pupil, durationSeconds, sampleCount },
   series: [...] (downsampled, ≤200 points, for charting), sizeBytes, uploadedAt
 ```
+
+The raw CSV is parsed entirely client-side and then discarded — only the
+derived stats and a downsampled series (for charting) are written to
+Firestore. No file storage is used or required.
 
 ## Firebase setup
 
@@ -54,15 +58,14 @@ studies/{studyId}/uploads/{uploadId}
    (Spark/free plan is enough).
 2. **Authentication** → Sign-in method → enable **Email/Password** and **Google**.
 3. **Firestore Database** → create database (production mode).
-4. **Storage** → get started (default bucket).
-5. Project settings → General → "Your apps" → add a Web app, copy the config
+4. Project settings → General → "Your apps" → add a Web app, copy the config
    into a new `.env.local` (see `.env.example` for the variable names).
-6. Deploy security rules and indexes (requires the [Firebase CLI](https://firebase.google.com/docs/cli)):
+5. Deploy security rules and indexes (requires the [Firebase CLI](https://firebase.google.com/docs/cli)):
    ```
    npm install -g firebase-tools
    firebase login
    firebase use --add   # pick your project
-   firebase deploy --only firestore:rules,firestore:indexes,storage
+   firebase deploy --only firestore:rules,firestore:indexes
    ```
    The composite index in `firestore.indexes.json` is required for the
    studies-by-owner query (`where ownerId == ... orderBy createdAt desc`) —
@@ -100,6 +103,5 @@ npm run build
 
 Deploy the `dist/` output to Vercel (a `vercel.json` SPA rewrite is
 included) and set the `VITE_FIREBASE_*` environment variables in the
-Vercel project settings. Firestore/Storage security rules are deployed
-separately via the Firebase CLI (see above) — Vercel only hosts the static
-frontend.
+Vercel project settings. Firestore security rules are deployed separately
+via the Firebase CLI (see above) — Vercel only hosts the static frontend.

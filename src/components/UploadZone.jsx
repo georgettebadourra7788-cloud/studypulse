@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
-import { ref, uploadBytes } from "firebase/storage";
 import { addDoc, collection, doc, increment, serverTimestamp, updateDoc } from "firebase/firestore";
-import { db, storage } from "../lib/firebase";
+import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { parseCsvFile, normalizeSamples } from "../lib/csvParser";
 import { computeStats, downsampleSeries } from "../lib/statsEngine";
@@ -62,12 +61,10 @@ export default function UploadZone({ study, uploadCount, onUploaded }) {
       const parsedStats = computeStats(samples);
       const series = downsampleSeries(samples, 200);
 
-      const storagePath = `studies/${study.id}/${Date.now()}_${file.name}`;
-      await uploadBytes(ref(storage, storagePath), file);
-
+      // The raw CSV is discarded after parsing - only the derived stats and
+      // downsampled series are persisted, so no file storage is needed.
       await addDoc(collection(db, "studies", study.id, "uploads"), {
         fileName: file.name,
-        storagePath,
         participantLabel: participantLabel || file.name,
         columnMapping: mapping,
         parsedStats,
