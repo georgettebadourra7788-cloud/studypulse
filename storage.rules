@@ -1,0 +1,14 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Raw CSV uploads live under studies/{studyId}/... - only the owning
+    // user (per the matching Firestore studies/{studyId} doc) can read or
+    // write them. Firestore is consulted via firestore.get, so Storage and
+    // Firestore rules stay in lockstep without duplicating ownership data.
+    match /studies/{studyId}/{allPaths=**} {
+      allow read, write: if request.auth != null &&
+        request.auth.uid == firestore.get(/databases/(default)/documents/studies/$(studyId)).data.ownerId;
+    }
+  }
+}
