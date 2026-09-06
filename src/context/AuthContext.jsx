@@ -26,6 +26,7 @@ async function ensureUserDoc(user) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined); // undefined = loading, null = signed out
   const [profile, setProfile] = useState(null);
+  const [profileError, setProfileError] = useState(null);
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (firebaseUser) => {
@@ -34,17 +35,24 @@ export function AuthProvider({ children }) {
         // Firestore round trip below - route guards key off this, and a
         // slow or failing profile fetch shouldn't block the redirect.
         setUser(firebaseUser);
+        setProfileError(null);
         try {
           await ensureUserDoc(firebaseUser);
           const snap = await getDoc(doc(db, "users", firebaseUser.uid));
           setProfile(snap.exists() ? snap.data() : null);
         } catch (err) {
+          // Surfaced via `profileError` (see PageLayout) rather than just
+          // logged - a permission-denied here means every write in the app
+          // is silently failing, and that's not something to hide in the
+          // console only.
           console.error("Failed to load user profile", err);
           setProfile(null);
+          setProfileError(err.message || String(err));
         }
       } else {
         setUser(null);
         setProfile(null);
+        setProfileError(null);
       }
     });
   }, []);
@@ -52,6 +60,7 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     profile,
+    profileError,
     loading: user === undefined,
     signUp: (email, password) => createUserWithEmailAndPassword(auth, email, password),
     signIn: (email, password) => signInWithEmailAndPassword(auth, email, password),
