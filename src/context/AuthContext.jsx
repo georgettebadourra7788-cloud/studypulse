@@ -30,10 +30,18 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        await ensureUserDoc(firebaseUser);
-        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-        setProfile(snap.exists() ? snap.data() : null);
+        // Flip `user` as soon as Firebase confirms the session, before the
+        // Firestore round trip below - route guards key off this, and a
+        // slow or failing profile fetch shouldn't block the redirect.
         setUser(firebaseUser);
+        try {
+          await ensureUserDoc(firebaseUser);
+          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+          setProfile(snap.exists() ? snap.data() : null);
+        } catch (err) {
+          console.error("Failed to load user profile", err);
+          setProfile(null);
+        }
       } else {
         setUser(null);
         setProfile(null);

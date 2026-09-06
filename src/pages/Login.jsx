@@ -1,15 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState("signin"); // "signin" | "signup"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Redirect once AuthContext's user state actually updates, rather than
+  // right after the sign-in call resolves - onAuthStateChanged fires on its
+  // own tick, so navigating immediately here would race it: the route guard
+  // could still see the pre-login `user` and bounce straight back to /login.
+  useEffect(() => {
+    if (user) navigate("/dashboard", { replace: true });
+  }, [user, navigate]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -21,7 +29,6 @@ export default function Login() {
       } else {
         await signIn(email, password);
       }
-      navigate("/dashboard");
     } catch (err) {
       setError(err.message.replace("Firebase: ", ""));
     } finally {
@@ -34,7 +41,6 @@ export default function Login() {
     setBusy(true);
     try {
       await signInWithGoogle();
-      navigate("/dashboard");
     } catch (err) {
       setError(err.message.replace("Firebase: ", ""));
     } finally {
