@@ -42,12 +42,18 @@ export default function ReportExport({ study, uploads }) {
         const pageCount = pdf.internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
           pdf.setPage(i);
-          pdf.setFontSize(60);
-          pdf.setTextColor(230, 230, 230);
+          pdf.saveGraphicsState();
+          // Low alpha (not just a pale solid gray) so the watermark stroke
+          // actually blends with whatever report text/data it crosses,
+          // instead of an opaque fill visibly cutting through it.
+          pdf.setGState(new pdf.GState({ opacity: 0.08 }));
+          pdf.setFontSize(48);
+          pdf.setTextColor(90, 90, 90);
           pdf.text("STUDYPULSE FREE PLAN", pageWidth / 2, pageHeight / 2, {
             angle: 35,
             align: "center",
           });
+          pdf.restoreGraphicsState();
         }
       }
 
