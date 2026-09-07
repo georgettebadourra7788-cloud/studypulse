@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import jsPDF from "jspdf";
 import { useAuth } from "../context/AuthContext";
 import { aggregateUploadStats, formatDuration } from "../lib/statsEngine";
